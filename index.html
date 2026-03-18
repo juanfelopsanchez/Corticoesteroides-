@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Corticoesteroides</title>
+
+<style>
+body { font-family: Arial; text-align: center; background: #f4f6f8; }
+.container { margin-top: 40px; }
+input { font-size: 20px; padding: 5px; text-align: center; }
+button { padding: 10px 20px; margin-top: 10px; cursor: pointer; }
+#timer { font-size: 28px; color: red; }
+#feedback { font-weight: bold; margin-top: 10px; }
+#final { white-space: pre-line; text-align: left; max-width: 800px; margin: auto; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>🫁 Quiz Corticoesteroides e Inflamación</h1>
+
+<div id="start">
+<input type="text" id="nombre" placeholder="Tu nombre">
+<br>
+<button onclick="iniciar()">Iniciar</button>
+</div>
+
+<div id="quiz" style="display:none;">
+<h3 id="contador"></h3>
+<h2 id="pregunta"></h2>
+<div id="timer">30</div>
+
+<input type="text" id="respuesta"><br>
+
+<button id="btnResponder" onclick="responder()">Responder</button>
+
+<p id="feedback"></p>
+
+<button id="siguiente" onclick="siguiente()" style="display:none;">
+Siguiente
+</button>
+</div>
+
+<div id="resultado" style="display:none;">
+<h2>Resultados</h2>
+<p id="final"></p>
+<button onclick="reiniciar()">Reintentar</button>
+</div>
+
+</div>
+
+<script>
+
+// 🧠 BANCO
+let banco = [
+
+{p:"Corticosteroide inhalado que inhibe NF-κB y AP-1 → ↓ citocinas inflamatorias; usado como controlador de asma persistente y puede causar candidiasis oral", r:["beclometasona"]},
+
+{p:"Corticosteroide inhalado con activación pulmonar por esterasas → inhibe NF-κB y AP-1 → menor toxicidad local", r:["ciclesonida"]},
+
+{p:"Corticosteroide inhalado frecuentemente combinado con LABA como formoterol → inhibe NF-κB y AP-1", r:["budesonida"]},
+
+{p:"Corticosteroide inhalado muy usado en combinaciones con LABA → inhibe NF-κB y AP-1", r:["fluticasona"]},
+
+{p:"Corticosteroide sistémico de acción prolongada que inhibe NF-κB y AP-1 → sin efecto mineralocorticoide significativo", r:["dexametasona"]},
+
+{p:"Corticosteroide sistémico de acción intermedia usado en exacerbaciones agudas de asma → inhibe NF-κB y AP-1", r:["prednisolona"]},
+
+{p:"Antagonista del receptor CysLT1 que bloquea LTD4 → ↓ moco y edema en asma", r:["montelukast"]},
+
+{p:"Inhibidor de la 5-lipooxigenasa → ↓ síntesis de leucotrienos → prevención de asma inducida por ejercicio", r:["zileuton"]},
+
+{p:"Anticuerpo monoclonal que bloquea IgE → evita desgranulación mastocitaria en asma alérgica", r:["omalizumab"]},
+
+{p:"Anticuerpo monoclonal que bloquea IL-5 → reduce eosinófilos en asma eosinofílica", r:["benralizumab"]},
+
+// 🔬 FISIOLOGÍA
+
+{p:"¿Qué segundo mensajero aumenta intracelularmente para broncodilatación?", r:["camp","ampc"]},
+
+{p:"¿Qué enzima activa Gs tras receptor β2?", r:["adenilciclasa"]},
+
+{p:"¿Qué quinasa activa el cAMP?", r:["pka"]},
+
+{p:"¿Qué enzima degrada cAMP?", r:["fosfodiesterasa","pde"]},
+
+{p:"¿Qué ion libera el retículo sarcoplásmico vía IP3?", r:["calcio"]},
+
+{p:"¿Qué neurotransmisor causa broncoconstricción vagal?", r:["acetilcolina"]},
+
+{p:"¿Qué receptor muscarínico causa contracción bronquial?", r:["m3"]},
+
+{p:"¿Qué receptor de histamina predomina en músculo liso?", r:["h1"]},
+
+{p:"¿Qué inmunoglobulina sensibiliza mastocitos?", r:["ige"]},
+
+{p:"¿Qué célula libera histamina en fase temprana?", r:["mastocito"]},
+
+{p:"¿Qué célula activa IL-5?", r:["eosinofilo","eosinófilo"]},
+
+{p:"¿Qué mediadores causan edema y moco?", r:["leucotrienos"]},
+
+{p:"¿Cómo se llama la predisposición genética alérgica?", r:["atopia"]},
+
+{p:"¿Qué células producen moco excesivo?", r:["caliciformes","goblet"]},
+
+{p:"¿Qué fenómeno define respuesta exagerada bronquial?", r:["hiperreactividad"]}
+
+];
+
+let preguntas = [];
+let index = 0;
+let puntaje = 0;
+let tiempo;
+let intervalo;
+let respuestasUsuario = [];
+let nombreGlobal = "";
+
+function mezclar(array){
+return array.sort(()=>Math.random()-0.5).slice(0,10);
+}
+
+function iniciar(){
+let nombreInput = document.getElementById("nombre").value;
+if(nombreInput !== "") nombreGlobal = nombreInput;
+
+document.getElementById("start").style.display = "none";
+document.getElementById("quiz").style.display = "block";
+
+preguntas = mezclar([...banco]);
+index = 0;
+puntaje = 0;
+respuestasUsuario = [];
+
+cargarPregunta();
+}
+
+function cargarPregunta(){
+if(index >= preguntas.length){
+finalizar();
+return;
+}
+
+document.getElementById("contador").innerText =
+"Pregunta " + (index+1) + " / 10";
+
+document.getElementById("pregunta").innerText = preguntas[index].p;
+
+let input = document.getElementById("respuesta");
+let boton = document.getElementById("btnResponder");
+
+input.value = "";
+input.disabled = false;
+boton.disabled = false;
+
+document.getElementById("feedback").innerText = "";
+document.getElementById("siguiente").style.display = "none";
+
+tiempo = 30;
+document.getElementById("timer").innerText = tiempo;
+
+intervalo = setInterval(()=>{
+tiempo--;
+document.getElementById("timer").innerText = tiempo;
+
+if(tiempo <= 0){
+clearInterval(intervalo);
+tiempoAgotado();
+}
+},1000);
+}
+
+function responder(){
+clearInterval(intervalo);
+
+let input = document.getElementById("respuesta");
+let boton = document.getElementById("btnResponder");
+
+let resp = input.value.toLowerCase().trim();
+let correctas = preguntas[index].r;
+
+let puntos = 0;
+let mensaje = "";
+
+if(correctas.includes(resp)){
+puntos = 50 - (30 - tiempo);
+puntaje += puntos;
+mensaje = "✅ Correcto (+" + puntos + " pts)";
+} else {
+mensaje = "❌ Incorrecto. Correcta: " + correctas.join(" / ");
+}
+
+document.getElementById("feedback").innerText = mensaje;
+
+respuestasUsuario.push({
+pregunta: preguntas[index].p,
+tuRespuesta: resp || "Sin respuesta",
+correcta: correctas.join(" / ")
+});
+
+input.disabled = true;
+boton.disabled = true;
+
+document.getElementById("siguiente").style.display = "inline-block";
+}
+
+function tiempoAgotado(){
+document.getElementById("feedback").innerText =
+"⏱️ Tiempo agotado. Correcta: " + preguntas[index].r.join(" / ");
+
+respuestasUsuario.push({
+pregunta: preguntas[index].p,
+tuRespuesta: "Sin respuesta",
+correcta: preguntas[index].r.join(" / ")
+});
+
+document.getElementById("siguiente").style.display = "inline-block";
+}
+
+function siguiente(){
+index++;
+cargarPregunta();
+}
+
+function finalizar(){
+
+document.getElementById("quiz").style.display = "none";
+document.getElementById("resultado").style.display = "block";
+
+let resumen = nombreGlobal + "\nPuntaje: " + puntaje + " / 500\n\n";
+
+respuestasUsuario.forEach((r,i)=>{
+resumen += (i+1) + ". " + r.pregunta + "\n";
+resumen += "Tu respuesta: " + r.tuRespuesta + "\n";
+resumen += "Correcta: " + r.correcta + "\n\n";
+});
+
+document.getElementById("final").innerText = resumen;
+}
+
+function reiniciar(){
+document.getElementById("resultado").style.display = "none";
+document.getElementById("quiz").style.display = "block";
+iniciar();
+}
+
+</script>
+
+</body>
+</html>
